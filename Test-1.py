@@ -43,7 +43,7 @@ def remove_highlights():
     label_image.configure(image=image_tk)
     label_image.image = image_tk
 
-def process_image(selected_color, highlight_mode, color_tolerance, segmentation_threshold):
+def process_image(selected_color, highlight_mode, color_tolerance, segmentation_threshold, lower_bound_values, upper_bound_values):
     global cv_image
     
     # Convert image to HSV color space
@@ -51,45 +51,41 @@ def process_image(selected_color, highlight_mode, color_tolerance, segmentation_
     
     # Define lower and upper bounds for the selected color
     if selected_color == "Red":
-        lower_bound = np.array([0 - color_tolerance, 50, 50])  # Lower bound for red color
-        upper_bound = np.array([10 + color_tolerance, 255, 255])  # Upper bound for red color
+        lower_bound = np.array([lower_bound_values[0], lower_bound_values[1], lower_bound_values[2]])  # Lower bound for red color
+        upper_bound = np.array([upper_bound_values[0], upper_bound_values[1], upper_bound_values[2]])  # Upper bound for red color
         highlight_color = (255, 0, 0)  # Red color for highlighting
     elif selected_color == "Green":
-        lower_bound = np.array([40 - color_tolerance, 40, 40])  # Lower bound for green color
-        upper_bound = np.array([80 + color_tolerance, 255, 255])  # Upper bound for green color
+        lower_bound = np.array([lower_bound_values[0], lower_bound_values[1], lower_bound_values[2]])  # Lower bound for green color
+        upper_bound = np.array([upper_bound_values[0], upper_bound_values[1], upper_bound_values[2]])  # Upper bound for green color
         highlight_color = (0, 255, 0)  # Green color for highlighting
     elif selected_color == "Blue":
-        lower_bound = np.array([100 - color_tolerance, 50, 50])  # Lower bound for blue color
-        upper_bound = np.array([130 + color_tolerance, 255, 255])  # Upper bound for blue color
+        lower_bound = np.array([lower_bound_values[0], lower_bound_values[1], lower_bound_values[2]])  # Lower bound for blue color
+        upper_bound = np.array([upper_bound_values[0], upper_bound_values[1], upper_bound_values[2]])  # Upper bound for blue color
         highlight_color = (0, 0, 255)  # Blue color for highlighting
     else:
         print("Invalid color selection")
         return
     
-    print("Lower Bound:", lower_bound)
-    print("Upper Bound:", upper_bound)
-    
     # Create a mask for the selected color with tolerance
     mask = cv2.inRange(hsv_image, lower_bound, upper_bound)
-    
-    print("Mask:", mask)
     
     # Apply morphological operations to remove noise
     kernel = np.ones((5,5), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     
-    print("Mask after morphology:", mask)
-    
     # Find contours in the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    print("Contours:", contours)
     
     # Draw contours on the original image
     if highlight_mode == "Full":
         cv2.fillPoly(cv_image, contours, highlight_color)
     elif highlight_mode == "Boundary":
         cv2.drawContours(cv_image, contours, -1, highlight_color, 2)
+    
+    # Resize the processed image if dimensions exceed 1280x720
+    height, width, _ = cv_image.shape
+    if height > 720 or width > 1280:
+        cv_image = cv2.resize(cv_image, (1280, 720))
     
     # Convert image from RGB to BGR for displaying with OpenCV
     cv_image_display = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
@@ -140,6 +136,34 @@ segmentation_threshold_scale = tk.Scale(root, from_=0, to=255, orient=tk.HORIZON
 segmentation_threshold_scale.set(100)  # Default value
 segmentation_threshold_scale.pack()
 
+# Advanced options for adjusting lower and upper bounds
+advanced_options_frame = tk.Frame(root)
+advanced_options_frame.pack()
+
+# Label for lower bound sliders
+lower_bound_label = tk.Label(advanced_options_frame, text="Lower Bound:")
+lower_bound_label.grid(row=0, column=0, padx=5, pady=5)
+
+# Sliders for lower bounds
+lower_bound_sliders = []
+for i in range(3):
+    lower_bound_slider = tk.Scale(advanced_options_frame, from_=0, to=255, orient=tk.HORIZONTAL)
+    lower_bound_slider.set(0)  # Default value
+    lower_bound_slider.grid(row=0, column=i+1, padx=5, pady=5)
+    lower_bound_sliders.append(lower_bound_slider)
+
+# Label for upper bound sliders
+upper_bound_label = tk.Label(advanced_options_frame, text="Upper Bound:")
+upper_bound_label.grid(row=1, column=0, padx=5, pady=5)
+
+# Sliders for upper bounds
+upper_bound_sliders = []
+for i in range(3):
+    upper_bound_slider = tk.Scale(advanced_options_frame, from_=0, to=255, orient=tk.HORIZONTAL)
+    upper_bound_slider.set(255)  # Default value
+    upper_bound_slider.grid(row=1, column=i+1, padx=5, pady=5)
+    upper_bound_sliders.append(upper_bound_slider)
+
 # Button to select an image
 select_button = tk.Button(root, text="Select Image", command=select_image)
 select_button.pack()
@@ -153,7 +177,7 @@ label_image = tk.Label(root)
 label_image.pack()
 
 # Button to process selected image
-process_button = tk.Button(root, text="Process Image", command=lambda: process_image(selected_color.get(), highlight_mode.get(), color_tolerance_scale.get(), segmentation_threshold_scale.get()))
+process_button = tk.Button(root, text="Process Image", command=lambda: process_image(selected_color.get(), highlight_mode.get(), color_tolerance_scale.get(), segmentation_threshold_scale.get(), [slider.get() for slider in lower_bound_sliders], [slider.get() for slider in upper_bound_sliders]))
 process_button.pack()
 
 # Button to clear processed image
