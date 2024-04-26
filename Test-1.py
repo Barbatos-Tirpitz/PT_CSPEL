@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
 
-# Define default values for red, green, and blue colors
+# default values for red, green, and blue colors
 red_lower = [0, 50, 50]
 red_upper = [10, 255, 255]
 
@@ -17,17 +17,17 @@ blue_upper = [130, 255, 255]
 def select_image():
     global cv_image, label_image, file_path
     
-    # Open file dialog to select an image
+    # select an image
     file_path = filedialog.askopenfilename()
     if file_path:
-        # Load selected image
+        # Load image
         cv_image = cv2.imread(file_path)
         
         if cv_image is None:
             print("Error: Failed to load image")
             return
         
-        # Convert image from BGR to RGB for displaying in Tkinter
+        # Convert image to display
         cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         # Convert image to PIL format
         image_pil = Image.fromarray(cv_image)
@@ -40,7 +40,7 @@ def select_image():
         
         # Create a new label widget to display the image
         label_image = tk.Label(root, image=image_tk)
-        label_image.image = image_tk  # Keep a reference to prevent garbage collection
+        label_image.image = image_tk  
         label_image.pack()
 
 def remove_highlights():
