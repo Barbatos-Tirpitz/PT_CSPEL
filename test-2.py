@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
 
-# Declare default values for various colors
+# Default values for various colors
 colors = {
     "Red": {
         "lower": [0, 50, 50],
@@ -26,8 +26,19 @@ colors = {
         "upper": [30, 255, 255],
         "highlight": (255, 255, 0)  # Add highlight color for Yellow
     },
-    # more colors more fun, dont forgor the highlight values
+    "Orange": {
+        "lower": [5, 100, 100],
+        "upper": [15, 255, 255],
+        "highlight": (255, 165, 0)  # Add highlight color for Orange
+    },
+    "Purple": {
+        "lower": [125, 50, 50],
+        "upper": [155, 255, 255],
+        "highlight": (128, 0, 128)  # Add highlight color for Purple
+    }
+    # Add more colors as needed
 }
+
 def select_image():
     global cv_image, label_image, file_path
     
@@ -87,26 +98,19 @@ def process_image(selected_color, highlight_mode, color_tolerance, segmentation_
     # Find contours in the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    # Create a transparent mask
-    transparent_mask = np.zeros_like(cv_image)
-    
-    # Draw contours on the transparent mask
+    # Draw contours on the original image with transparency
     highlight_color = colors[selected_color]["highlight"]
-    if highlight_mode == "Full":
-        cv2.fillPoly(transparent_mask, contours, highlight_color)
-    elif highlight_mode == "Boundary":
-        cv2.drawContours(transparent_mask, contours, -1, highlight_color, 2)
-    
-    # Blend the transparent mask with the original image using alpha blending
-    cv_image_with_transparency = cv2.addWeighted(cv_image, 1 - transparency, transparent_mask, transparency, 0)
+    overlay = cv_image.copy()
+    cv2.fillPoly(overlay, contours, highlight_color)
+    cv2.addWeighted(overlay, transparency, cv_image, 1 - transparency, 0, cv_image)
     
     # Resize the processed image if dimensions exceed 1280x720
-    height, width, _ = cv_image_with_transparency.shape
+    height, width, _ = cv_image.shape
     if height > 720 or width > 1280:
-        cv_image_with_transparency = cv2.resize(cv_image_with_transparency, (1280, 720))
+        cv_image = cv2.resize(cv_image, (1280, 720))
     
     # Convert image from RGB to BGR for displaying with OpenCV
-    cv_image_display = cv2.cvtColor(cv_image_with_transparency, cv2.COLOR_RGB2BGR)
+    cv_image_display = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
     
     # Display the processed image
     cv2.imshow('Processed Image', cv_image_display)
@@ -172,9 +176,8 @@ kernel_size_scale.pack()
 transparency_label = tk.Label(left_frame, text="Transparency:")
 transparency_label.pack()
 transparency_scale = tk.Scale(left_frame, from_=0, to=1, resolution=0.1, orient=tk.HORIZONTAL)
-transparency_scale.set(0.5)  # Default transparency value
+transparency_scale.set(0.5)  # Default transparency
 transparency_scale.pack()
-
 
 # Advanced options for adjusting lower and upper bounds
 advanced_options_frame = tk.Frame(left_frame)
